@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perfektwerkstatt Lektion 11</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,500;0,700;1,500&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: Kopf mit Auftrag, darunter Kartenstapel (Formen) und sechs Ablagefächer im Raster */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --ink:#1d2733; --muted:#5b6876; --line:#d5dce3;
+  --accent:#a3263a; --accent-soft:#f6e3e6; --blue:#1f6f97; --blue-soft:#e2eff6;
+  --ok:#2e7d4f; --ok-soft:#e1f2e7; --bad:#b3401f; --bad-soft:#fbe5dd;
+  --f-latin:"Alegreya",Georgia,"Times New Roman",serif;
+  --f-ui:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141a21; --surface:#1d252e; --ink:#e7ecf1; --muted:#9aa7b4; --line:#33404d;
+  --accent:#e0697c; --accent-soft:#3a2229; --blue:#6cb6dc; --blue-soft:#1b3242;
+  --ok:#6ccf94; --ok-soft:#1b3326; --bad:#f08a68; --bad-soft:#3b2219; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141a21; --surface:#1d252e; --ink:#e7ecf1; --muted:#9aa7b4; --line:#33404d;
+  --accent:#e0697c; --accent-soft:#3a2229; --blue:#6cb6dc; --blue-soft:#1b3242;
+  --ok:#6ccf94; --ok-soft:#1b3326; --bad:#f08a68; --bad-soft:#3b2219; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:16px;line-height:1.5}
+.wrap{max-width:1100px;margin:0 auto;padding-inline:16px;padding-block:24px 48px;display:grid;gap:20px}
+header{display:grid;gap:6px}
+.eyebrow{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-family:var(--f-latin);font-weight:700;font-size:clamp(1.7rem,4vw,2.4rem);margin:0;line-height:1.15;text-wrap:balance}
+.task{margin:0;color:var(--muted);max-width:68ch}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button,.toggle{font:inherit;font-size:.95rem;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:700}
+button:focus-visible,.card:focus-visible,.bin:focus-visible,.toggle:focus-within{outline:3px solid var(--blue);outline-offset:2px}
+.toggle{display:inline-flex;gap:8px;align-items:center}
+.score{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700}
+.score[hidden]{display:none}
+.pool{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:14px;min-height:90px;display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start}
+.pool.empty::after{content:"Alle Formen sind verteilt. Drücke auf „Prüfen“.";color:var(--muted);font-size:.95rem;align-self:center}
+.poolhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.poolhead h2,.bin h3{margin:0}
+.poolhead h2{font-size:1rem}
+.count{color:var(--muted);font-size:.9rem;font-variant-numeric:tabular-nums}
+.card{font-family:var(--f-latin);font-size:1.25rem;font-weight:500;background:var(--blue-soft);color:var(--ink);border:2px solid transparent;border-radius:10px;padding:6px 14px 7px;cursor:grab;user-select:none;touch-action:manipulation;display:inline-flex;flex-direction:column;align-items:flex-start;line-height:1.2}
+.card small{font-family:var(--f-ui);font-size:.72rem;color:var(--muted);font-weight:400}
+.card.sel{border-color:var(--accent);background:var(--accent-soft)}
+.card.ok{background:var(--ok-soft);border-color:var(--ok)}
+.card.bad{background:var(--bad-soft);border-color:var(--bad)}
+.card .sol{display:none}
+.card.ok .sol,.card.bad .sol{display:block}
+.card.bad .sol{color:var(--bad)}
+.card.dragging{opacity:.4}
+.bins{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.bin{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px;align-content:start;min-height:150px;cursor:pointer;transition:border-color .15s,background .15s}
+.bin.armed{border-color:var(--accent)}
+.bin.over{background:var(--accent-soft);border-color:var(--accent)}
+.bin h3{font-size:1.02rem}
+.bin p{margin:0;font-size:.85rem;color:var(--muted)}
+.bin .slot{display:flex;flex-wrap:wrap;gap:8px;min-height:44px;border-top:1px solid var(--line);padding-top:10px}
+.help{font-size:.88rem;color:var(--muted);margin:0}
+.credit{color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Lektion 11 <span class="credit">· mit KI erstellt (Claude von Anthropic)</span></div>
+    <h1>Wie ist das Perfekt gebildet?</h1>
+    <p class="task">Ordne jede Perfektform der richtigen Perfektbildung zu. Ziehe die Karte in ein Fach oder tippe erst die Karte und dann das Fach an. Eine Karte im Fach kannst du durch Antippen zurücklegen.</p>
+  </header>
+
+  <div class="bar">
+    <button class="primary" id="check">Prüfen</button>
+    <button id="back">Falsche zurücklegen</button>
+    <button id="reset">Neu mischen</button>
+    <label class="toggle" for="hint"><input type="checkbox" id="hint"> Hilfe: Infinitiv zeigen</label>
+    <span class="score" id="score" hidden></span>
+  </div>
+
+  <section>
+    <div class="poolhead"><h2>Perfektformen</h2><span class="count" id="count"></span></div>
+    <div class="pool" id="pool" data-bin="pool" aria-label="Kartenstapel"></div>
+  </section>
+
+  <section class="bins" id="bins"></section>
+  <p class="help">Tipp: Bilde zuerst die 1. Person Singular (z. B. <em>vicit → vici</em>) und vergleiche sie mit dem Präsensstamm.</p></div>
+
+<script>
+const CATS = [
+  {id:"v", name:"v-Perfekt", desc:"-v- steht vor der Perfektendung."},
+  {id:"u", name:"u-Perfekt", desc:"-u- steht vor der Perfektendung."},
+  {id:"s", name:"s-Perfekt", desc:"-s- (auch als -x- oder -ss-) steht vor der Endung."},
+  {id:"d", name:"Dehnungsperfekt", desc:"Der Stammvokal wird gedehnt, oft auch verändert."},
+  {id:"r", name:"Reduplikationsperfekt (Verdopplungsperfekt)", desc:"Der Anfang des Stammes wird verdoppelt."},
+  {id:"o", name:"Perfektbildung ohne Veränderung", desc:"Der Stamm bleibt wie im Präsens."}
+];
+const ITEMS = [
+  ["complevit","complere","compleo, complevi","v"],
+  ["vocaverunt","vocare","voco, vocavi","v"],
+  ["consuluistis","consulere","consulo, consului","u"],
+  ["censuimus","censere","censeo, censui","u"],
+  ["aperuerunt","aperire","aperio, aperui","u"],
+  ["amisimus","amittere","amitto, amisi","s"],
+  ["mansit","manere","maneo, mansi","s"],
+  ["dixerunt","dicere","dico, dixi","s"],
+  ["duxi","ducere","duco, duxi","s"],
+  ["pressit","premere","premo, pressi","s"],
+  ["accessisti","accedere","accedo, accessi","s"],
+  ["aspexistis","aspicere","aspicio, aspexi","s"],
+  ["misit","mittere","mitto, misi","s"],
+  ["risimus","ridere","rideo, risi","s"],
+  ["vicit","vincere","vinco, vici","d"],
+  ["cepisti","capere","capio, cepi","d"],
+  ["fecerunt","facere","facio, feci","d"],
+  ["reliquit","relinquere","relinquo, reliqui","d"],
+  ["venistis","venire","venio, veni","d"],
+  ["vidimus","videre","video, vidi","d"],
+  ["cucurrerunt","currere","curro, cucurri","r"],
+  ["stetit","stare","sto, steti","r"],
+  ["dedistis","dare","do, dedi","r"],
+  ["defendisti","defendere","defendo, defendi","o"]
+].map(([form,inf,stamm,cat],i)=>({i,form,inf,stamm,cat}));
+const catName = Object.fromEntries(CATS.map(c=>[c.id,c.name]));
+
+const pool = document.getElementById("pool");
+const binsEl = document.getElementById("bins");
+const scoreEl = document.getElementById("score");
+const countEl = document.getElementById("count");
+const hint = document.getElementById("hint");
+let selected = null;
+
+CATS.forEach(c=>{
+  const b = document.createElement("div");
+  b.className="bin"; b.dataset.bin=c.id; b.tabIndex=0; b.setAttribute("role","button");
+  b.setAttribute("aria-label","Fach "+c.name);
+  b.innerHTML=`<h3>${c.name}</h3><p>${c.desc}</p><div class="slot"></div>`;
+  binsEl.appendChild(b);
+});
+const slotOf = id => id==="pool" ? pool : binsEl.querySelector(`[data-bin="${id}"] .slot`);
+
+function makeCard(it){
+  const el=document.createElement("div");
+  el.className="card"; el.tabIndex=0; el.draggable=true; el.dataset.i=it.i;
+  el.setAttribute("role","button");
+  el.innerHTML=`<span>${it.form}</span><small class="inf"${hint.checked?"":" hidden"}>${it.inf}</small><small class="sol"></small>`;
+  el.addEventListener("click",e=>{e.stopPropagation();onCard(el)});
+  el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();onCard(el)}});
+  el.addEventListener("dragstart",e=>{e.dataTransfer.setData("text/plain",el.dataset.i);el.classList.add("dragging")});
+  el.addEventListener("dragend",()=>el.classList.remove("dragging"));
+  return el;
+}
+function clearMarks(el){el.classList.remove("ok","bad");el.querySelector(".sol").textContent=""}
+function setSel(el){
+  if(selected) selected.classList.remove("sel");
+  selected=el; if(el) el.classList.add("sel");
+  binsEl.querySelectorAll(".bin").forEach(b=>b.classList.toggle("armed",!!el));
+}
+function onCard(el){
+  if(el.parentElement!==pool){ clearMarks(el); pool.appendChild(el); setSel(null); update(); return; }
+  setSel(selected===el?null:el);
+}
+function place(el,binId){ clearMarks(el); slotOf(binId).appendChild(el); setSel(null); update(); }
+
+binsEl.querySelectorAll(".bin").forEach(b=>{
+  const go=()=>{ if(selected) place(selected,b.dataset.bin) };
+  b.addEventListener("click",go);
+  b.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}});
+});
+[...binsEl.querySelectorAll(".bin"),pool].forEach(z=>{
+  z.addEventListener("dragover",e=>{e.preventDefault();z.classList.add("over")});
+  z.addEventListener("dragleave",()=>z.classList.remove("over"));
+  z.addEventListener("drop",e=>{
+    e.preventDefault(); z.classList.remove("over");
+    const el=document.querySelector(`.card[data-i="${e.dataTransfer.getData("text/plain")}"]`);
+    if(el) place(el,z.dataset.bin);
+  });
+});
+
+function update(){
+  const left=pool.children.length;
+  countEl.textContent = left ? `${left} von ${ITEMS.length} noch offen` : "alle verteilt";
+  pool.classList.toggle("empty",left===0);
+}
+function check(){
+  let ok=0, placed=0;
+  binsEl.querySelectorAll(".bin").forEach(b=>{
+    b.querySelectorAll(".card").forEach(el=>{
+      placed++;
+      const it=ITEMS[el.dataset.i]; const right=it.cat===b.dataset.bin;
+      el.classList.toggle("ok",right); el.classList.toggle("bad",!right);
+      el.querySelector(".sol").textContent = right ? `${it.inf}: ${it.stamm}` : `nicht hier · ${it.inf}: ${it.stamm}`;
+      if(right) ok++;
+    });
+  });
+  scoreEl.hidden=false;
+  scoreEl.textContent = placed ? `${ok} von ${placed} richtig` + (pool.children.length?` · ${pool.children.length} offen`:"") : "Noch keine Karte zugeordnet";
+}
+function backWrong(){
+  binsEl.querySelectorAll(".card.bad").forEach(el=>{clearMarks(el);pool.appendChild(el)});
+  update();
+}
+function reset(){
+  setSel(null); pool.innerHTML=""; binsEl.querySelectorAll(".slot").forEach(s=>s.innerHTML="");
+  const arr=[...ITEMS];
+  for(let k=arr.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[arr[k],arr[j]]=[arr[j],arr[k]]}
+  arr.forEach(it=>pool.appendChild(makeCard(it)));
+  scoreEl.hidden=true; update();
+}
+document.getElementById("check").addEventListener("click",check);
+document.getElementById("back").addEventListener("click",backWrong);
+document.getElementById("reset").addEventListener("click",reset);
+hint.addEventListener("change",()=>document.querySelectorAll(".card .inf").forEach(s=>s.hidden=!hint.checked));
+document.addEventListener("click",()=>setSel(null));
+reset();
+</script>
+</body>
+</html>
